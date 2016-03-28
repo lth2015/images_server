@@ -255,7 +255,23 @@ func DeleteBucket(w http.ResponseWriter, r *http.Request, params httprouter.Para
 	WriteResponse(w, &pm)
 }
 
+func GetBucket(w http.ResponseWriter, r *http.Request, params httprouter.Params) {
+	account := params.ByName("account")
+	container := params.ByName("container")
+	bucket := params.ByName("bucket")
+	bucket = "./storage/" + account + "/" + container + "/" + bucket
+	log.Printf("Get Bucket: bucket=%s", bucket)
+	if _, err := os.Stat(bucket); err != nil {
+		log.Printf("Get Bucket error: err=%s", err.Error())
+		http.Error(w, http.StatusText(404), 404)
+		return
+	}
+
+	http.ServeFile(w, r, bucket)
+}
+
 func main() {
+	log.SetFlags(log.Lshortfile | log.LstdFlags)
 	router := httprouter.New()
 	router.GET("/version", Version)
 	router.GET("/healthz", Healthz)
@@ -263,6 +279,7 @@ func main() {
 	router.DELETE("/api/:version/:account", DeleteAccount)
 	router.POST("/api/:version/:account/:container", PostContainer)
 	router.DELETE("/api/:version/:account/:container", DeleteContainer)
+	router.GET("/api/:version/:account/:container/:bucket", GetBucket)
 	router.PUT("/api/:version/:account/:container", PutBuckets)
 	router.POST("/api/:version/:account/:container/:bucket", PostBucket)
 	router.DELETE("/api/:version/:account/:container/:bucket", DeleteBucket)
